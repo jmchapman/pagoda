@@ -132,8 +132,10 @@ tval g Z          = Z
 tval g N          = N
 tval g (Pi s (SynBody t))  = Pi (tval g s) (SemBody g t)
 tval g Type       = Type
+
 eval :: Env n -> En (Syn n) -> Thing
 eval g (V i     ) = elookup g i
+eval g (P r     ) = En (P r) :::: refType r
 eval g (e :/ t  ) = eval g e / tval g t
 eval g (t ::: ty) = tval g t :::: tval g ty
 
@@ -183,6 +185,7 @@ replace x i Type                 = Type
 ereplace :: Ref -> Fin n -> En (Syn n) -> En (Syn n)
 ereplace x i (V j) = V j -- i better not equal j
 ereplace x i (P y) | x == y = V i
+ereplace x i (P y)          = P y
 ereplace x i (e :/ s) = ereplace x i e :/ replace x i s
 ereplace x i (t ::: ty) = replace x i t ::: replace x i ty
 
@@ -209,6 +212,7 @@ nquote (e :/ s) = do
   (e',Pi _S (SemBody g _T)) <- nquote e
   s' <- quote (s :::: _S)
   return (e' :/ s', tval (ES g (s :::: _S)) _T)
+  
 instance Eq Thing where
   thing1 == thing2 = runFresh (quote thing1) == runFresh (quote thing2)
 
@@ -305,8 +309,13 @@ ex2 = Pi N (SemBody E0 N) >:> Lam (SynBody Z)
 ex3 = N >:> En ((Lam (SynBody Z) ::: Pi N (SynBody N)) :/ Z)
 ex4 = (val $ Pi Type (SynBody (Pi (En (V FZero)) (SynBody (En (V (FSuc FZero))))))) >:> Lam (SynBody (Lam (SynBody (En (V FZero)))))
 
--- failing tests
+ex5' = eval E0 (P (Ref (-1) (Pi N (SemBody E0 N))))
+ex5'' = eval E0 (Lam (SynBody (En (P (Ref (-1) (Pi N (SemBody E0 N))) :/ En (V FZero)))) ::: Pi N (SynBody N))
+ex5 = ex5' == ex5'' -- calls quote
+
+-- Failing tests
 fex1 = Pi N (SemBody E0 N) >:> Z
 fex2 = N >:> En ((Lam (SynBody Z) ::: Pi N (SynBody N)) :/ N)
 fex3 = N >:> En ((Z ::: N) :/ Z)
+
 -- -}
