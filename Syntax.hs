@@ -1,7 +1,8 @@
 {-# LANGUAGE KindSignatures, DataKinds, GADTs,
              StandaloneDeriving,
              TypeSynonymInstances,
-             FlexibleInstances #-}
+             FlexibleInstances,
+             DeriveFunctor #-}
 module Syntax where
 
 import Prelude hiding ((/))
@@ -146,19 +147,24 @@ val :: Tm (Syn Zero) -> Val
 val t = tval E0 t
 
 -- quote, needed for equality checking, needs a name supply but doesn't fail
-newtype Fresh x = Fresh (Name -> (x,Name))
+newtype Fresh x = Fresh (Name -> (x,Name)) deriving Functor
 
 runFresh (Fresh f) = fst (f 0)
 
-instance Functor Fresh where
-  fmap f (Fresh x) = Fresh $ \name -> let (x' , name') = x name in (f x', name')
-
 instance Applicative Fresh where
   pure x = Fresh (\ name -> (x, name))
-  (<*>) = undefined
+  Fresh f <*> Fresh a = Fresh $ \name ->
+    let (f',newname)    = f name
+        (a',newestname) = a name
+    in
+        (f' a', newestname)
 
 instance Monad Fresh where
-  (>>=) = undefined
+  Fresh x >>= f = Fresh $ \ name ->
+    let (x' , newname) = x name
+        Fresh fx = f x'
+    in
+        fx newname
 
 -- abstract the free var by weakening then replacing
 abstract :: Ref -> SNat n -> Tm (Syn n) -> Tm (Syn (Suc n))
@@ -211,15 +217,10 @@ instance Eq Ne where
 
 -- typechecker
 
-newtype TC x = TC (Name -> Maybe (x,Name))
+newtype TC x = TC (Name -> Maybe (x,Name)) deriving Functor
 
 runTC :: TC x -> Maybe x
 runTC (TC f) = fmap fst (f 0)
-
-instance Functor TC where
-  fmap f (TC g) = TC $ \name -> do
-    (x,newname) <- g name
-    return (f x, newname)
 
 instance Applicative TC where
   pure x = TC $ \ n -> Just (x, n)
