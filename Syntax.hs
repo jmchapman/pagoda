@@ -57,7 +57,7 @@ deriving instance Show (Tm p)
 deriving instance Eq (Tm (Syn n))
 
 instantiate :: Tm (Syn (Suc Zero)) -> Ref -> Tm (Syn Zero)
-instantiate t x = sub SZero (SS S0 (P x)) t
+instantiate t x = subTm SZero (SS S0 (P x)) t
 
 data Ren (m :: Nat)(n :: Nat) where
    R0 :: Ren m Zero
@@ -93,35 +93,35 @@ renId :: SNat n -> Ren n n
 renId SZero    = R0
 renId (SSuc n) = RS (rwk n (renId n)) FZero
 
-data Sub (m :: Nat)(n :: Nat) where
-   S0 :: Sub m Zero
-   SS :: Sub m n -> En (Syn m) -> Sub m (Suc n)
+data Subst (m :: Nat)(n :: Nat) where
+   S0 :: Subst m Zero
+   SS :: Subst m n -> En (Syn m) -> Subst m (Suc n)
 
-slookup :: Sub m n -> Fin n -> En (Syn m)
+slookup :: Subst m n -> Fin n -> En (Syn m)
 slookup (SS es e) FZero    = e
 slookup (SS es e) (FSuc i) = slookup es i
 
-swk :: SNat m -> Sub m n -> Sub (Suc m) n
+swk :: SNat m -> Subst m n -> Subst (Suc m) n
 swk m S0 = S0
 swk m (SS es e) = SS (swk m es) (renEn (SSuc m) (rwk m (renId m)) e)
 
-slift :: SNat m -> Sub m n -> Sub (Suc m) (Suc n)
+slift :: SNat m -> Subst m n -> Subst (Suc m) (Suc n)
 slift n es = SS (swk n es) (V FZero)
 
-sub :: SNat m -> Sub m n -> Tm (Syn n) -> Tm (Syn m)
-sub n es (En e)               = En $ subEn n es e
-sub n es (Lam (SynBody t))    = Lam (SynBody (sub (SSuc n) (slift n es) t))
-sub n es Z                    = Z
-sub n es N                    = N
-sub n es (Pi _S (SynBody _T)) =
-  Pi (sub n es _S) (SynBody (sub (SSuc n) (slift n es) _T))
-sub n es Type                 = Type
+subTm :: SNat m -> Subst m n -> Tm (Syn n) -> Tm (Syn m)
+subTm n es (En e)               = En $ subEn n es e
+subTm n es (Lam (SynBody t))    = Lam (SynBody (subTm (SSuc n) (slift n es) t))
+subTm n es Z                    = Z
+subTm n es N                    = N
+subTm n es (Pi _S (SynBody _T)) =
+  Pi (subTm n es _S) (SynBody (subTm (SSuc n) (slift n es) _T))
+subTm n es Type                 = Type
 
-subEn :: SNat m -> Sub m n -> En (Syn n) -> En (Syn m)
+subEn :: SNat m -> Subst m n -> En (Syn n) -> En (Syn m)
 subEn n es (V i)      = slookup es i
 subEn n _  (P x)      = P x
-subEn n es (e :/ s)   = subEn n es e :/ sub n es s
-subEn n es (t ::: ty) = sub n es t ::: sub n es ty
+subEn n es (e :/ s)   = subEn n es e :/ subTm n es s
+subEn n es (t ::: ty) = subTm n es t ::: subTm n es ty
 
 -- intepreter/evaluator
 
