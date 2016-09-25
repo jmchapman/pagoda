@@ -298,6 +298,12 @@ subType N      N       = return ()
 subType (En e) (En e') =
   if e == e' then return () else
     fail $ show e ++ " ain't the same as " ++ show e'
+subType (Pi _S (SemBody g _T)) (Pi _S' (SemBody g' _T')) = do
+  subType _S' _S 
+  x <- tcfresh _S
+  -- might need to pay attention to which domain type is used later
+  subType (tval (ES g (En (P x) :::: _S)) _T)
+          (tval (ES g' (En (P x) :::: _S')) _T')
 subType x y = fail $ show x ++ " ain't the same as " ++ show y
 
 instance Eq Ref where
