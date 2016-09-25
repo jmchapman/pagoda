@@ -1,12 +1,15 @@
 {-# LANGUAGE GADTs, DataKinds, KindSignatures, StandaloneDeriving #-}
 module DeBrujnify where
 
-import Utils
 import Data.List
 import Data.Maybe
+import Control.Applicative
+
+import Utils
 import Syntax
 import Layout
-import Control.Applicative
+
+-- Raw terms
 
 data Raw = RLam String Raw
          | RN
@@ -22,35 +25,6 @@ data RawEn = RApp RawEn  Raw
 type RawSplice = Raw
 
 type SC = Maybe
-
-data Vec x (n :: Nat) where
-  VNil  :: Vec x Zero
-  VCons :: x -> Vec x n -> Vec x (Suc n)
-
-vlookup :: Fin n -> Vec x n -> x
-vlookup FZero    (VCons x _ ) = x
-vlookup (FSuc i) (VCons _ xs) = vlookup i xs
-
--- find the first x in the vector and return its index
-velemIndex :: Eq x => x -> Vec x n -> Maybe (Fin n)
-velemIndex x VNil          = Nothing
-velemIndex x (VCons x' xs) =
-  if x == x' then
-    Just FZero              
-  else
-    fmap FSuc (velemIndex x xs)
-
--- find the nth x in the vector and return its index
-velemIndex' :: Eq x => x -> Nat ->  Vec x n -> Maybe (Fin n)
-velemIndex' x n VNil          = Nothing
-velemIndex' x n (VCons x' xs) =
-  if x == x' then
-    case n of
-      Zero  -> Just FZero
-      Suc n -> fmap FSuc (velemIndex' x n xs)
-  else
-    fmap FSuc (velemIndex' x n xs)
-
 
 deBruijnify :: Vec String n -> Raw -> SC (Tm (Syn n))
 deBruijnify g (RLam x t) = Lam . SynBody <$> deBruijnify (VCons x g) t
@@ -121,7 +95,11 @@ pex6 = map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens "(Z : N)"
 
 pex7 =  "((\\ x . x) : pi x : N . N) Z" -- use with below
 
+-- these should move
+{-
 parseEval s = fmap val $ deBruijnify VNil $ head $ map (\ (_,y,_) -> y) $ filter (\ (_,_,z) -> null z)  $ parseTokens bigTm (groupify $ tokens s)
 
 parseCheck s = runTC .infer =<< (deBruijnifyE VNil $ head $ map (\ (_,y,_) -> y) $ filter (\ (_,_,z) -> null z)  $ parseTokens bigEn (groupify $ tokens s))
 
+parseQuote s = fmap (runFresh . quote) $  parseCheck s
+-}
