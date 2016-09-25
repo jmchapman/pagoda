@@ -76,8 +76,8 @@ bigEn :: ParseTokens RawEn
 bigEn = smallEn <|> appTm
 
 smallEn :: ParseTokens RawEn
-smallEn = varTm <|> grp "(" (gap *> annTm <* gap) ")" <|>
-          grp "(" (gap *> bigEn <* gap) ")"
+smallEn = grp "(" (gap *> annTm <* gap) ")" <|>
+          grp "(" (gap *> bigEn <* gap) ")" <|> varTm
        
 lamTm :: ParseTokens Raw
 lamTm = RLam <$ eat "\\" <* gap <*> var <* gap <* eat "." <* gap <*> bigTm
@@ -104,8 +104,12 @@ var :: ParseTokens String
 var = sym >>= \ x -> case x of
   c : s | elem c "'\\-" -> empty
   _     | elem ':' x -> empty
+  "N" -> empty
+  "Z" -> empty
+  "pi" -> empty
   _ -> return x
 
+-- tests
 pex1 = map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens "(x y) z")
 pex2 = map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens "x y z")
 pex3 = map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens "(\\ x . x) z")
@@ -115,6 +119,9 @@ pex5 = map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $
   tokens "\\ x . x")
 pex6 = map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens "(Z : N)")
 
-pex7 = fmap val $ deBruijnify VNil $ head $ map (\ (_,y,_) -> y) $ filter (\ (_,_,z) -> null z)  $ parseTokens bigTm (groupify $ tokens "((\\ x . x) : pi x : N . N) Z")
+pex7 =  "((\\ x . x) : pi x : N . N) Z" -- use with below
 
-parse s = fmap val $ deBruijnify VNil $ head $ map (\ (_,y,_) -> y) $ filter (\ (_,_,z) -> null z)  $ parseTokens bigTm (groupify $ tokens s)
+parseEval s = fmap val $ deBruijnify VNil $ head $ map (\ (_,y,_) -> y) $ filter (\ (_,_,z) -> null z)  $ parseTokens bigTm (groupify $ tokens s)
+
+parseCheck s = runTC .infer =<< (deBruijnifyE VNil $ head $ map (\ (_,y,_) -> y) $ filter (\ (_,_,z) -> null z)  $ parseTokens bigEn (groupify $ tokens s))
+
