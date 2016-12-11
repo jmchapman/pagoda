@@ -1,5 +1,9 @@
-{-# LANGUAGE GADTs, DataKinds, KindSignatures, StandaloneDeriving #-}
-module DeBrujnify where
+{-# LANGUAGE GADTs,
+             DataKinds,
+             KindSignatures,
+             StandaloneDeriving #-}
+--------------------------------------------------------------------------------
+module DeBruijnify where
 
 import Data.List
 import Data.Maybe
@@ -14,7 +18,11 @@ import Layout
 data Raw = RLam String Raw
          | RN
          | RZ
+         | RB Bit
          | RPi String Raw Raw
+         | RType
+         | RPt
+         | RPath Raw Raw
          | REn RawEn
          deriving Show
 
@@ -27,11 +35,15 @@ type RawSplice = Raw
 type SC = Maybe
 
 deBruijnify :: Vec String n -> Raw -> SC (Tm (Syn n))
-deBruijnify g (RLam x t) = Lam . SynBody <$> deBruijnify (VCons x g) t
+deBruijnify g RType          = pure Type
 deBruijnify g (RPi x _S _T)  =
   Pi <$> deBruijnify g _S <*> (SynBody <$> deBruijnify (VCons x g) _T)
-deBruijnify g RN         = pure N
-deBruijnify g RZ         = pure Z
+deBruijnify g (RLam x t)     = Lam . SynBody <$> deBruijnify (VCons x g) t
+deBruijnify g RN             = pure N
+deBruijnify g RZ             = pure Z
+deBruijnify g RPt            = pure Pt
+deBruijnify g (RPath _S _T)  =
+  Path <$> deBruijnify g _S <*> deBruijnify g _T 
 deBruijnify g (REn e)    = En <$> deBruijnifyE g e
 
 deBruijnifyE :: Vec String n -> RawEn -> SC (En (Syn n))
@@ -39,13 +51,16 @@ deBruijnifyE g (RApp t u)  = (:/) <$> deBruijnifyE g t <*> deBruijnify g u
 deBruijnifyE g (RVar x n)  = V <$> velemIndex' x n g
 deBruijnifyE g (RAnn t ty) = (:::) <$> deBruijnify g t <*> deBruijnify g ty
 
--- raw tests
-rex1 = RLam "x" RZ `RAnn` RPi "x" RN RN
-
 -- parsing
 bigTm :: ParseTokens Raw
-bigTm = zTm <|> nTm <|> lamTm <|> piTm <|> REn <$> bigEn <|>
-        grp "(" (gap *> bigTm <* gap) ")"
+bigTm = typeTm
+    <|> pointTm
+    <|> nTm
+    <|> zTm
+    <|> piTm
+    <|> lamTm
+    <|> REn <$> bigEn
+    <|> grp "(" (gap *> bigTm <* gap) ")"
 
 bigEn :: ParseTokens RawEn
 bigEn = smallEn <|> appTm
@@ -75,32 +90,22 @@ zTm = RZ <$ eat "Z"
 nTm :: ParseTokens Raw
 nTm = RN <$ eat "N"  
 
+typeTm :: ParseTokens Raw
+typeTm = RType <$ eat "*"
+
+pointTm :: ParseTokens Raw
+pointTm = RB <$> (B0 <$ eat "0" <|> B1 <$ eat "1")
+
 var :: ParseTokens String
 var = sym >>= \ x -> case x of
   c : s | elem c "'\\-" -> empty
   _     | elem ':' x -> empty
+  "*" -> empty
   "N" -> empty
   "Z" -> empty
   "pi" -> empty
+  "0" -> empty
+  "1" -> empty
   _ -> return x
 
--- tests
-pex1 = map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens "(x y) z")
-pex2 = map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens "x y z")
-pex3 = map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens "(\\ x . x) z")
-pex4 = map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $
-  tokens "\\ x . x z")
-pex5 = map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $
-  tokens "\\ x . x")
-pex6 = map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens "(Z : N)")
 
-pex7 =  "((\\ x . x) : pi x : N . N) Z" -- use with below
-
--- these should move
-{-
-parseEval s = fmap val $ deBruijnify VNil $ head $ map (\ (_,y,_) -> y) $ filter (\ (_,_,z) -> null z)  $ parseTokens bigTm (groupify $ tokens s)
-
-parseCheck s = runTC .infer =<< (deBruijnifyE VNil $ head $ map (\ (_,y,_) -> y) $ filter (\ (_,_,z) -> null z)  $ parseTokens bigEn (groupify $ tokens s))
-
-parseQuote s = fmap (runFresh . quote) $  parseCheck s
--}

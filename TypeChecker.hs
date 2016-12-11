@@ -89,20 +89,5 @@ subType (Pi _S (SemBody g _T)) (Pi _S' (SemBody g' _T')) = do
           (tval (ES g' (En (P x) :::: _S')) _T')
 subType x y = fail $ show x ++ " ain't the same as " ++ show y
 
--- successful tests
-ex1 = N >:> Z
-ex2 = Pi N (SemBody E0 N) >:> Lam (SynBody Z)
-ex3 = N >:> En ((Lam (SynBody Z) ::: Pi N (SynBody N)) :/ Z)
-ex4 = (val $ Pi Type (SynBody (Pi (En (V FZero)) (SynBody (En (V (FSuc FZero))))))) >:> Lam (SynBody (Lam (SynBody (En (V FZero)))))
-
-ex5' = eval E0 (P (Ref (-1) (Pi N (SemBody E0 N))))
-ex5'' = eval E0 (Lam (SynBody (En (P (Ref (-1) (Pi N (SemBody E0 N))) :/ En (V FZero)))) ::: Pi N (SynBody N))
-ex5 = ex5' == ex5'' -- calls quote
-
--- Failing tests
-fex1 = Pi N (SemBody E0 N) >:> Z
-fex2 = N >:> En ((Lam (SynBody Z) ::: Pi N (SynBody N)) :/ N)
-fex3 = N >:> En ((Z ::: N) :/ Z)
-
 -- -}
 
