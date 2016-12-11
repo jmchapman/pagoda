@@ -1,5 +1,9 @@
-{-# LANGUAGE DataKinds, TypeSynonymInstances, FlexibleInstances, DeriveFunctor,
+{-# LANGUAGE DataKinds,
+             TypeSynonymInstances,
+             FlexibleInstances,
+             DeriveFunctor,
              GADTs #-}
+{-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
 
 module Semantics where
 
@@ -13,12 +17,15 @@ type ELIM = En (Syn Zero)
 
 -- semantics
 tval :: Env n -> Tm (Syn n) -> Val
-tval g (En e)  = valOf (eval g e)
-tval g (Lam (SynBody t)) = Lam (SemBody g t)
-tval g Z          = Z
-tval g N          = N
+tval g (En e)              = valOf (eval g e)
+tval g (I b)               = I b
+tval g (Lam (SynBody t))   = Lam (SemBody g t)
+tval g Z                   = Z
+tval g N                   = N
 tval g (Pi s (SynBody t))  = Pi (tval g s) (SemBody g t)
-tval g Type       = Type
+tval g (Path _S _T)        = Path (tval g _S) (tval g _T)
+tval g Type                = Type
+tval g Pt                  = Pt
 
 eval :: Env n -> En (Syn n) -> Thing
 eval g (V i     ) = elookup g i
@@ -27,9 +34,15 @@ eval g (e :/ t  ) = eval g e / tval g t
 eval g (t ::: ty) = tval g t :::: tval g ty
 
 (/) :: Thing -> Val -> Thing
+(_Q                :::: Path _S _T) / I B0 = _S :::: Type
+(_Q                :::: Path _S _T) / I B1 = _T :::: Type
+(Lam (SemBody g t) :::: Path _S _T) / p =
+  tval (ES g (p :::: Pt)) t :::: Type
+(En _Q             :::: Path _S _T) / p =
+  En (_Q :/ p) :::: Type
 (Lam (SemBody g t) :::: Pi _S (SemBody g' _T)) / s =
   tval (ES g (s :::: _S)) t :::: tval (ES g' (s :::: _S)) _T
-(En e :::: Pi _S (SemBody g _T)) / s =
+(En e              :::: Pi _S (SemBody g _T)) / s =
   En (e :/ s) :::: tval (ES g (s :::: _S)) _T
 
 val :: Tm (Syn Zero) -> Val
@@ -58,8 +71,11 @@ fresh :: Val -> Fresh Ref
 fresh ty = Fresh $ \ i -> (Ref (next i) ty, next i)
 
 quote :: Thing -> Fresh TERM
+quote (I b :::: Pt) = return $ I b
 quote (N :::: Type) = return N
 quote (Z :::: N)    = return Z
+quote (Path _S _T           :::: Type) = do
+  Path <$> quote (_S :::: Type) <*> quote (_T :::: Type)
 quote (Pi _S (SemBody g _T) :::: Type) = do
   x <- fresh _S
   dom <- quote (_S :::: Type)

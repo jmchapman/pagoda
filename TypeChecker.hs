@@ -21,7 +21,7 @@ instance Applicative TC where
     (f , newname) <- f name
     (x , newestname) <- x newname
     return (f x , newestname)
-  
+
 instance Monad TC where
   TC x >>= f = TC $ \ name -> do
     (x , newname) <- x name
@@ -31,7 +31,7 @@ instance Monad TC where
 -- is the action ok?
 (/:>) :: Val -> TERM -> TC ()
 Pi _S _T /:> s = _S >:> s >> return ()
-ty        /:> s =
+ty       /:> s =
   fail $ show s ++ " can't act on something of type " ++ show ty
 
 tcfresh :: Val -> TC Ref

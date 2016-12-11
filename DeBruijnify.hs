@@ -28,7 +28,8 @@ type SC = Maybe
 
 deBruijnify :: Vec String n -> Raw -> SC (Tm (Syn n))
 deBruijnify g (RLam x t) = Lam . SynBody <$> deBruijnify (VCons x g) t
-deBruijnify g (RPi x _S _T)  = Pi <$> deBruijnify g _S <*> (SynBody <$> deBruijnify (VCons x g) _T)
+deBruijnify g (RPi x _S _T)  =
+  Pi <$> deBruijnify g _S <*> (SynBody <$> deBruijnify (VCons x g) _T)
 deBruijnify g RN         = pure N
 deBruijnify g RZ         = pure Z
 deBruijnify g (REn e)    = En <$> deBruijnifyE g e
