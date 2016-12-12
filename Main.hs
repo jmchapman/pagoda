@@ -1,3 +1,4 @@
+--------------------------------------------------------------------------------
 module Main where
 
 import Utils
@@ -18,8 +19,11 @@ pex7 =  "((\\ x . x) : pi x : N . N) Z"
 pex8 = "*"
 pex9 = "1"
 pex10 = "0"
+pex11 = "* - *"
+pex12 = "(* - *)"
 
-parse s = map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens s)
+parse s =
+  map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens s)
 
 parseEval s = fmap val $ deBruijnify VNil $ head $ map (\ (_,y,_) -> y) $ filter (\ (_,_,z) -> null z)  $ parseTokens bigTm (groupify $ tokens s)
 parseCheck s = runTC .infer =<< (deBruijnifyE VNil $ head $ map (\ (_,y,_) -> y) $ filter (\ (_,_,z) -> null z)  $ parseTokens bigEn (groupify $ tokens s))

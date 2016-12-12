@@ -53,48 +53,65 @@ deBruijnifyE g (RAnn t ty) = (:::) <$> deBruijnify g t <*> deBruijnify g ty
 
 -- parsing
 bigTm :: ParseTokens Raw
-bigTm = typeTm
+bigTm = smallTm <|> pathTm
+
+smallTm :: ParseTokens Raw
+smallTm = typeTm
     <|> pointTm
     <|> nTm
     <|> zTm
     <|> piTm
     <|> lamTm
-    <|> REn <$> bigEn
     <|> grp "(" (gap *> bigTm <* gap) ")"
+    <|> REn <$> bigEn
+
 
 bigEn :: ParseTokens RawEn
 bigEn = smallEn <|> appTm
 
 smallEn :: ParseTokens RawEn
-smallEn = grp "(" (gap *> annTm <* gap) ")" <|>
-          grp "(" (gap *> bigEn <* gap) ")" <|> varTm
-       
-lamTm :: ParseTokens Raw
-lamTm = RLam <$ eat "\\" <* gap <*> var <* gap <* eat "." <* gap <*> bigTm
+smallEn = varTm <|>
+  grp "(" (gap *> bigEn <* gap) ")" <|>
+  grp "(" (gap *> annTm <* gap) ")" -- are the brackets really needed?
 
 piTm :: ParseTokens Raw
-piTm = RPi <$ eat "pi" <* gap <*> var <* gap <* eat ":" <* gap <*> bigTm <* gap <* eat "." <* gap <*> bigTm
+piTm = RPi <$ eat "pi" <* gap <*> var <* gap <* eat ":"
+  <* gap <*> bigTm <* gap <* eat "."
+  <* gap <*> bigTm
+
+lamTm :: ParseTokens Raw
+lamTm = RLam <$ eat "\\" <* gap <*> var <* gap <* eat "."
+  <* gap <*> bigTm
 
 annTm :: ParseTokens RawEn
-annTm = RAnn <$ gap <*> bigTm <* gap <* eat ":" <* gap <*> bigTm <* gap
+annTm = RAnn <$> bigTm <* gap <* eat ":" <* gap <*> bigTm
 
 varTm :: ParseTokens RawEn
 varTm = (\ x -> RVar x Zero) <$ gap <*> var
 
 appTm :: ParseTokens RawEn
-appTm = RApp <$ gap <*> smallEn <* gap <*> bigTm
+appTm = RApp <$> smallEn <* gap <*> bigTm
+
+-- type
+typeTm :: ParseTokens Raw
+typeTm = RType <$ eat "*"
+
+-- natural numbers
+nTm :: ParseTokens Raw
+nTm = RN <$ eat "N"  
 
 zTm :: ParseTokens Raw
 zTm = RZ <$ eat "Z"  
 
-nTm :: ParseTokens Raw
-nTm = RN <$ eat "N"  
-
-typeTm :: ParseTokens Raw
-typeTm = RType <$ eat "*"
+-- points and paths
 
 pointTm :: ParseTokens Raw
 pointTm = RB <$> (B0 <$ eat "0" <|> B1 <$ eat "1")
+
+pathTm :: ParseTokens Raw
+pathTm = RPath <$> smallTm <* gap <* eat "-" <* gap <*> bigTm
+
+-- variables are anything that isn't something else
 
 var :: ParseTokens String
 var = sym >>= \ x -> case x of
