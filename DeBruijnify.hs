@@ -30,6 +30,7 @@ data RawEn = RApp RawEn  Raw
            | RVar String Nat
            | RAnn Raw Raw
            deriving Show
+
 type RawSplice = Raw
 
 type SC = Maybe
@@ -53,17 +54,15 @@ deBruijnifyE g (RAnn t ty) = (:::) <$> deBruijnify g t <*> deBruijnify g ty
 
 -- parsing
 bigTm :: ParseTokens Raw
-bigTm = smallTm <|> pathTm
+bigTm = smallTm <|> pathTm <|> lamTm <|> piTm <|> REn <$> bigEn
 
 smallTm :: ParseTokens Raw
 smallTm = typeTm
     <|> pointTm
     <|> nTm
     <|> zTm
-    <|> piTm
-    <|> lamTm
     <|> grp "(" (gap *> bigTm <* gap) ")"
-    <|> REn <$> bigEn
+
 
 
 bigEn :: ParseTokens RawEn

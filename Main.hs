@@ -21,6 +21,8 @@ pex9 = "1"
 pex10 = "0"
 pex11 = "* - *"
 pex12 = "(* - *)"
+pex13 = "(* : *) - *"
+pex14 = "* : * - *"
 
 parse s =
   map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens s)
@@ -50,4 +52,9 @@ fex1 = Pi N (SemBody E0 N) >:> Z
 fex2 = N >:> En ((Lam (SynBody Z) ::: Pi N (SynBody N)) :/ N)
 fex3 = N >:> En ((Z ::: N) :/ Z)
 
--- use with runTC
+
+main = loop where
+  loop = do
+    str <- getLine
+    print $ parse str
+    loop
