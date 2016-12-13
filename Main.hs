@@ -3,6 +3,7 @@ module Main where
 
 import Utils
 import Layout
+import Parser
 import DeBruijnify
 import Syntax
 import Semantics
