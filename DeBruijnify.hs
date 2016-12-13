@@ -46,6 +46,3 @@ deBruijnifyE :: Vec String n -> RawEn -> SC (En (Syn n))
 deBruijnifyE g (RApp t u)  = (:/) <$> deBruijnifyE g t <*> deBruijnify g u
 deBruijnifyE g (RVar x n)  = V <$> velemIndex' x n g
 deBruijnifyE g (RAnn t ty) = (:::) <$> deBruijnify g t <*> deBruijnify g ty
-
-
-
