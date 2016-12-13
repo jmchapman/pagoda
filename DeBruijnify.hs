@@ -63,15 +63,13 @@ smallTm = typeTm
     <|> zTm
     <|> grp "(" (gap *> bigTm <* gap) ")"
 
-
-
 bigEn :: ParseTokens RawEn
-bigEn = smallEn <|> appTm
+bigEn = smallEn <|> appTm <|> annTm
 
 smallEn :: ParseTokens RawEn
 smallEn = varTm <|>
-  grp "(" (gap *> bigEn <* gap) ")" <|>
-  grp "(" (gap *> annTm <* gap) ")" -- are the brackets really needed?
+  grp "(" (gap *> bigEn <* gap) ")" -- <|>
+--  grp "(" (gap *> annTm <* gap) ")" -- are the brackets really needed?
 
 piTm :: ParseTokens Raw
 piTm = RPi <$ eat "pi" <* gap <*> var <* gap <* eat ":"
@@ -83,7 +81,7 @@ lamTm = RLam <$ eat "\\" <* gap <*> var <* gap <* eat "."
   <* gap <*> bigTm
 
 annTm :: ParseTokens RawEn
-annTm = RAnn <$> bigTm <* gap <* eat ":" <* gap <*> bigTm
+annTm = RAnn <$> smallTm <* gap <* eat ":" <* gap <*> bigTm
 
 varTm :: ParseTokens RawEn
 varTm = (\ x -> RVar x Zero) <$ gap <*> var
