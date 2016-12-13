@@ -4,7 +4,7 @@ module Main where
 import Utils
 import Layout
 import Parser
-import DeBruijnify
+import Raw
 import Syntax
 import Semantics
 import TypeChecker
@@ -25,8 +25,9 @@ pex12 = "(* - *)"
 pex13 = "(* : *) - *"
 pex14 = "* : * - *"
 pex15 =  "((\\ x . x) : pi x : * . *) * - *"
+pex16 = "N : *"
 
-parse s =
+parse s = fst $ head $ filter (\ (_,z) -> z == []) $
   map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens s)
 
 parseEval s = fmap val $ deBruijnify VNil $ head $ map (\ (_,y,_) -> y) $ filter (\ (_,_,z) -> null z)  $ parseTokens bigTm (groupify $ tokens s)

@@ -4,7 +4,7 @@ import Control.Applicative
 
 import Utils
 import Layout
-import DeBruijnify
+import Raw
 import Syntax
 
 -- parsing

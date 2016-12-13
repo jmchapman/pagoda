@@ -39,6 +39,9 @@ tcfresh ty = TC $ \ i -> Just (Ref (next i) ty, next i)
 
 -- check a term in a trusted type
 (>:>) :: Val -> TERM -> TC Val
+Type                 >:> Type               = return Type
+Type                 >:> Path _S _T         = do
+  Path <$> (Type >:> _S) <*> (Type >:> _T)
 Type                 >:> N                  = return N
 Type                 >:> Pi _S (SynBody _T) = do
   _S <- Type >:> _S

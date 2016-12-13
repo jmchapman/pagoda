@@ -3,7 +3,7 @@
              KindSignatures,
              StandaloneDeriving #-}
 --------------------------------------------------------------------------------
-module DeBruijnify where
+module Raw where
 
 import Utils
 import Syntax
@@ -39,8 +39,9 @@ deBruijnify g RN             = pure N
 deBruijnify g RZ             = pure Z
 deBruijnify g RPt            = pure Pt
 deBruijnify g (RPath _S _T)  =
-  Path <$> deBruijnify g _S <*> deBruijnify g _T 
-deBruijnify g (REn e)    = En <$> deBruijnifyE g e
+  Path <$> deBruijnify g _S <*> deBruijnify g _T
+deBruijnify g (RB b)         = pure $ I b
+deBruijnify g (REn e)        = En <$> deBruijnifyE g e
 
 deBruijnifyE :: Vec String n -> RawEn -> SC (En (Syn n))
 deBruijnifyE g (RApp t u)  = (:/) <$> deBruijnifyE g t <*> deBruijnify g u
