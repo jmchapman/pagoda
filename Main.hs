@@ -21,6 +21,7 @@ pex9 = "1"
 pex10 = "0"
 pex11 = "* - *"
 pex12 = "(* - *)"
+pex13 =  "((\\ x . x) : pi x : * . *) * - *"
 
 parse s =
   map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens s)
