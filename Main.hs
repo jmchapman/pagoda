@@ -26,6 +26,7 @@ pex13 = "(* : *) - *"
 pex14 = "* : * - *"
 pex15 =  "((\\ x . x) : pi x : * . *) * - *"
 pex16 = "N : *"
+pex17 = "(\\ i . N) : N - N" 
 
 parse s = fst $ head $ filter (\ (_,z) -> z == []) $
   map (\ (_,y,z) -> (y,z)) $ parseTokens bigTm (groupify $ tokens s)

@@ -40,15 +40,24 @@ tcfresh ty = TC $ \ i -> Just (Ref (next i) ty, next i)
 -- check a term in a trusted type
 (>:>) :: Val -> TERM -> TC Val
 Type                 >:> Type               = return Type
+
+Type                 >:> N                  = return N
+N                    >:> Z                  = return Z
+
 Type                 >:> Path _S _T         = do
   Path <$> (Type >:> _S) <*> (Type >:> _T)
-Type                 >:> N                  = return N
+Path _S _T           >:> Lam (SynBody t)    = do
+  x <- tcfresh Pt
+  Type >:> instantiate t x
+  subType _S (tval (ES E0 (I B0 :::: Pt)) t)
+  subType _T (tval (ES E0 (I B1 :::: Pt)) t)
+  return $ Lam (SemBody E0 t)
+  
 Type                 >:> Pi _S (SynBody _T) = do
   _S <- Type >:> _S
   x <- tcfresh _S
   Type >:> instantiate _T x
   return $ Pi _S (SemBody E0 _T)
-N                    >:> Z                  = return Z
 Pi _S (SemBody g _T) >:> Lam (SynBody t)    = do
   x <- tcfresh _S
   tval (ES g (En (P x) :::: _S)) _T >:> instantiate t x
