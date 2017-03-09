@@ -43,16 +43,16 @@ rex1 = RLam "x" RZ `RAnn` RPi "x" RN RN
 
 -- successful tests
 ex1 = N >:> Z
-ex2 = Pi N (SemBody E0 N) >:> Lam (SynBody Z)
+ex2 = Pi N (SemBody BNil N) >:> Lam (SynBody Z)
 ex3 = N >:> En ((Lam (SynBody Z) ::: Pi N (SynBody N)) :/ Z)
 ex4 = (val $ Pi Type (SynBody (Pi (En (V FZero)) (SynBody (En (V (FSuc FZero))))))) >:> Lam (SynBody (Lam (SynBody (En (V FZero)))))
 
-ex5' = eval E0 (P (Ref (-1) (Pi N (SemBody E0 N))))
-ex5'' = eval E0 (Lam (SynBody (En (P (Ref (-1) (Pi N (SemBody E0 N))) :/ En (V FZero)))) ::: Pi N (SynBody N))
+ex5' = eval BNil (P (Ref (-1) (Pi N (SemBody BNil N))))
+ex5'' = eval BNil (Lam (SynBody (En (P (Ref (-1) (Pi N (SemBody BNil N))) :/ En (V FZero)))) ::: Pi N (SynBody N))
 ex5 = ex5' == ex5'' -- calls quote
 
 -- Failing tests
-fex1 = Pi N (SemBody E0 N) >:> Z
+fex1 = Pi N (SemBody BNil N) >:> Z
 fex2 = N >:> En ((Lam (SynBody Z) ::: Pi N (SynBody N)) :/ N)
 fex3 = N >:> En ((Z ::: N) :/ Z)
 
